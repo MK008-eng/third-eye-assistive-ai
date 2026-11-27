@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Third Eye Assistive AI</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    line-height: 1.6;
+}
+
+header {
+    background: #17243a;
+    padding: 22px;
+    text-align: center;
+    border-bottom: 2px solid #16c79a;
+}
+
+header h1 {
+    color: #16c79a;
+    font-size: 27px;
+}
+
+header p {
+    color: #d1d5db;
+    margin-top: 5px;
+}
+
+.container {
+    width: 92%;
+    max-width: 900px;
+    margin: 25px auto;
+}
+
+.card {
+    background: #1c2b42;
+    padding: 22px;
+    margin-bottom: 22px;
+    border-radius: 14px;
+    border: 1px solid #34465f;
+}
+
+.card h2 {
+    color: #16c79a;
+    margin-bottom: 15px;
+}
+
+button {
+    background: #16c79a;
+    color: #101827;
+    border: none;
+    padding: 13px 18px;
+    margin: 7px 5px 7px 0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0da77e;
+}
+
+button:focus {
+    outline: 3px solid white;
+}
+
+video, canvas {
+    width: 100%;
+    max-height: 350px;
+    background: #080d16;
+    border-radius: 10px;
+    margin-top: 12px;
+}
+
+#output {
+    background: #101827;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 12px;
+    min-height: 65px;
+    color: #e5e7eb;
+    overflow-wrap: anywhere;
+}
+
+.status {
+    color: #16c79a;
+    margin-top: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 13px;
+    margin-top: 10px;
+    border-radius: 7px;
+    border: 1px solid #64748b;
+    background: #101827;
+    color: white;
+}
+
+footer {
+    text-align: center;
+    padding: 25px;
+    color: #aab4c4;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>THIRD EYE AI</h1>
+    <p>Intelligent Assistive Communication & Navigation</p>
+</header>
+
+<main class="container">
+
+    <section class="card">
+        <h2>Welcome</h2>
+        <p>
+        An AI-powered accessibility platform designed
+        to help visually impaired individuals interact
+        with their surroundings.
+        </p>
+        <p class="status" id="systemStatus">
+            System Ready
+        </p>
+    </section>
+
+    <section class="card">
+        <h2>1. Voice Assistant</h2>
+        <p>Interact with the system using your voice.</p>
+
+        <button onclick="startListening()">
+            Start Voice Assistant
+        </button>
+
+        <button onclick="stopListening()">
+            Stop Listening
+        </button>
+
+        <div id="voiceOutput" class="status">
+            Voice assistant is waiting.
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>2. Camera Assistance</h2>
+        <p>
+        Activate the camera to view and capture
+        your surroundings.
+        </p>
+
+        <button onclick="startCamera()">
+            Start Camera
+        </button>
+
+        <button onclick="captureImage()">
+            Capture Image
+        </button>
+
+        <button onclick="stopCamera()">
+            Stop Camera
+        </button>
+
+        <video id="camera" autoplay playsinline></video>
+
+        <canvas id="snapshot"></canvas>
+
+        <div id="cameraStatus" class="status">
+            Camera is inactive.
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>3. Text to Speech</h2>
+
+        <p>Enter text to hear it spoken aloud.</p>
+
+        <input
+            type="text"
+            id="speechText"
+            placeholder="Enter text here..."
+            aria-label="Text to read aloud"
+        >
+
+        <button onclick="speakText()">
+            Read Text
+        </button>
+
+        <button onclick="stopSpeaking()">
+            Stop Speech
+        </button>
+    </section>
+
+    <section class="card">
+        <h2>4. Navigation Assistance</h2>
+
+        <p>
+        Access your current location using GPS.
+        </p>
+
+        <button onclick="getLocation()">
+            Get My Location
+        </button>
+
+        <div id="locationOutput" class="status">
+            Location not requested.
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>5. Accessibility Controls</h2>
+
+        <button onclick="changeFont(2)">
+            Increase Text Size
+        </button>
+
+        <button onclick="changeFont(-2)">
+            Decrease Text Size
+        </button>
+
+        <button onclick="toggleContrast()">
+            Toggle High Contrast
+        </button>
+
+        <button onclick="readPage()">
+            Read Page
+        </button>
+    </section>
+
+    <section class="card">
+        <h2>6. System Information</h2>
+        <div id="output">
+            Third Eye Assistive AI is ready.
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>Third Eye Assistive AI | 2026</p>
+    <p>Technology for Accessibility and Independence</p>
+</footer>
+
+<script>
+
+let cameraStream = null;
+let recognition = null;
+let highContrast = false;
+
+// Voice output
+
+function speak(message) {
+    if (!("speechSynthesis" in window)) {
+        alert("Speech output is not supported.");
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    let speech = new SpeechSynthesisUtterance(message);
+    speech.lang = "en-IN";
+
+    window.speechSynthesis.speak(speech);
+}
+
+function speakText() {
+    let text = document.getElementById("speechText").value;
+
+    if (!text.trim()) {
+        alert("Please enter some text.");
+        return;
+    }
+
+    speak(text);
+}
+
+function stopSpeaking() {
+    window.speechSynthesis.cancel();
+}
+
+// Voice recognition
+
+function startListening() {
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        alert("Voice recognition is not supported.");
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function() {
+        document.getElementById("voiceOutput")
+            .textContent = "Listening...";
+    };
+
+    recognition.onresult = function(event) {
+
+        let command =
+            event.results[0][0].transcript.toLowerCase();
+
+        document.getElementById("voiceOutput")
+            .textContent = "You said: " + command;
+
+        processCommand(command);
+    };
+
+    recognition.onerror = function() {
+        document.getElementById("voiceOutput")
+            .textContent = "Voice recognition error.";
+    };
+
+    recognition.start();
+}
+
+function stopListening() {
+    if (recognition) {
+        recognition.stop();
+    }
+
+    document.getElementById("voiceOutput")
+        .textContent = "Listening stopped.";
+}
+
+// Voice commands
+
+function processCommand(command) {
+
+    if (command.includes("hello")) {
+        speak("Hello! Welcome to Third Eye Assistive AI.");
+    }
+
+    else if (command.includes("camera")) {
+        speak("You can activate the camera using the camera controls.");
+    }
+
+    else if (command.includes("location")) {
+        speak("Location assistance is available.");
+        getLocation();
+    }
+
+    else if (command.includes("read")) {
+        speak(document.body.innerText);
+    }
+
+    else {
+        speak("Command not recognized. Please try again.");
+    }
+}
+
+// Camera assistance
+
+async function startCamera() {
+
+    try {
+
+        cameraStream =
+            await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" },
+                audio: false
+            });
+
+        document.getElementById("camera").srcObject =
+            cameraStream;
+
+        document.getElementById("cameraStatus")
+            .textContent = "Camera activated.";
+
+        speak("Camera activated.");
+
+    }
+
+    catch (error) {
+
+        document.getElementById("cameraStatus")
+            .textContent = "Camera access unavailable.";
+
+        alert("Please allow camera permission.");
+    }
+}
+
+function captureImage() {
+
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("snapshot");
+
+    if (!cameraStream || video.videoWidth === 0) {
+        alert("Please start the camera first.");
+        return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(video, 0, 0);
+
+    document.getElementById("cameraStatus")
+        .textContent = "Image captured successfully.";
+
+    speak("Image captured successfully.");
+}
+
+function stopCamera() {
+
+    if (cameraStream) {
+
+        cameraStream.getTracks().forEach(track => {
+            track.stop();
+        });
+
+        cameraStream = null;
+
+        document.getElementById("camera").srcObject = null;
+
+        document.getElementById("cameraStatus")
+            .textContent = "Camera stopped.";
+
+        speak("Camera stopped.");
+    }
+}
+
+// Location assistance
+
+function getLocation() {
+
+    const output =
+        document.getElementById("locationOutput");
+
+    if (!navigator.geolocation) {
+        output.textContent =
+            "Geolocation is not supported.";
+        return;
+    }
+
+    output.textContent = "Getting location...";
+
+    navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+            let latitude = position.coords.latitude;
+            let longitude = position.coords.longitude;
+
+            output.textContent =
+                "Latitude: " + latitude +
+                " | Longitude: " + longitude;
+
+            speak("Your location has been retrieved.");
+
+        },
+
+        function() {
+
+            output.textContent =
+                "Unable to retrieve location.";
+
+        }
+    );
+}
+
+// Accessibility
+
+function changeFont(amount) {
+
+    let currentSize =
+        parseFloat(getComputedStyle(document.body).fontSize);
+
+    document.body.style.fontSize =
+        (currentSize + amount) + "px";
+}
+
+function toggleContrast() {
+
+    highContrast = !highContrast;
+
+    document.body.style.background =
+        highContrast ? "#000000" : "#101827";
+
+    document.body.style.color =
+        highContrast ? "#ffff00" : "#ffffff";
+}
+
+function readPage() {
+    speak(document.body.innerText);
+}
+
+// System initialization
+
+document.getElementById("systemStatus")
+    .textContent = "System Ready - All modules initialized.";
+
+</script>
+
+</body>
+</html>
