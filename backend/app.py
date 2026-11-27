@@ -1,128 +1,118 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from datetime import datetime
 
-app = Flask(__name__)
+app = FastAPI(
+    title="Third Eye Assistive AI",
+    description="AI-powered assistive technology",
+    version="1.0.0"
+)
 
-# Application information
-APP_NAME = "Third Eye Assistive AI"
-VERSION = "1.0.0"
-
-# Supported languages
 LANGUAGES = ["English", "Tamil"]
 
 
-@app.route("/", methods=["GET"])
+class AssistantRequest(BaseModel):
+    message: str
+    language: str = "English"
+
+
+@app.get("/")
 def home():
-    return jsonify({
-        "application": APP_NAME,
-        "version": VERSION,
+    return {
+        "application": "Third Eye Assistive AI",
         "status": "Running",
-        "message": "Welcome to Third Eye Assistive AI"
-    })
+        "message": "Welcome to Third Eye"
+    }
 
 
-@app.route("/api/health", methods=["GET"])
+@app.get("/api/health")
 def health():
-    return jsonify({
+    return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat()
-    })
+    }
 
 
-@app.route("/api/languages", methods=["GET"])
+@app.get("/api/languages")
 def languages():
-    return jsonify({
+    return {
         "supported_languages": LANGUAGES
-    })
+    }
 
 
-@app.route("/api/assistant", methods=["POST"])
-def assistant():
+@app.post("/api/assistant")
+def assistant(data: AssistantRequest):
 
-    data = request.get_json(silent=True) or {}
+    message = data.message.strip()
+    language = data.language
 
-    user_message = data.get("message", "").strip()
-    language = data.get("language", "English")
-
-    if not user_message:
-        return jsonify({
-            "error": "Please provide a message"
-        }), 400
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide a message"
+        )
 
     if language not in LANGUAGES:
-        return jsonify({
-            "error": "Unsupported language"
-        }), 400
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported language"
+        )
 
-    message = user_message.lower()
+    text = message.lower()
 
-    # English responses
     if language == "English":
 
-        if "hello" in message or "hi" in message:
+        if "hello" in text or "hi" in text:
             response = "Hello! How can I assist you?"
 
-        elif "help" in message:
+        elif "help" in text:
             response = "I am here to help you understand your surroundings."
 
-        elif "who are you" in message:
+        elif "who are you" in text:
             response = "I am Third Eye, your assistive AI companion."
 
-        elif "time" in message:
+        elif "time" in text:
             response = datetime.now().strftime(
                 "The current time is %I:%M %p"
             )
 
-        elif "features" in message:
+        elif "features" in text:
             response = (
                 "I support voice assistance, "
                 "object recognition and text recognition."
             )
 
         else:
-            response = (
-                "I heard your request. "
-                "Please try asking about my features or assistance."
-            )
+            response = "I received your message. How can I help?"
 
-    # Tamil responses
     else:
 
-        if "வணக்கம்" in user_message:
+        if "வணக்கம்" in message:
             response = "வணக்கம்! நான் உங்களுக்கு எப்படி உதவலாம்?"
 
-        elif "உதவி" in user_message:
+        elif "உதவி" in message:
             response = "உங்களுக்கு உதவ நான் தயாராக இருக்கிறேன்."
 
         else:
             response = "உங்கள் கோரிக்கையை நான் பெற்றுள்ளேன்."
 
-    return jsonify({
-        "application": APP_NAME,
-        "user_message": user_message,
+    return {
+        "success": True,
+        "message": message,
         "language": language,
-        "response": response,
-        "success": True
-    })
+        "response": response
+    }
 
 
-@app.errorhandler(404)
-def page_not_found(error):
-    return jsonify({
-        "error": "Requested page not found"
-    }), 404
-
-
-@app.errorhandler(500)
-def server_error(error):
-    return jsonify({
-        "error": "Internal server error"
-    }), 500
-
-
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=False
-      )
+@app.get("/api/info")
+def application_info():
+    return {
+        "name": "Third Eye Assistive AI",
+        "version": "1.0.0",
+        "supported_languages": LANGUAGES,
+        "features": [
+            "Voice Assistance",
+            "Object Recognition",
+            "Text Recognition"
+        ]
+    }
