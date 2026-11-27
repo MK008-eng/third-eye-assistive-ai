@@ -402,8 +402,11 @@ async function startCamera() {
 
 function captureImage() {
 
+    async function captureImage() {
+
     const video = document.getElementById("camera");
     const canvas = document.getElementById("snapshot");
+    const status = document.getElementById("cameraStatus");
 
     if (!cameraStream || video.videoWidth === 0) {
         alert("Please start the camera first.");
@@ -414,15 +417,52 @@ function captureImage() {
     canvas.height = video.videoHeight;
 
     const context = canvas.getContext("2d");
-
     context.drawImage(video, 0, 0);
 
-    document.getElementById("cameraStatus")
-        .textContent = "Image captured successfully.";
+    status.textContent = "Analyzing image with AI...";
 
-    speak("Image captured successfully.");
+    canvas.toBlob(async (blob) => {
+
+        if (!blob) {
+            status.textContent = "Image capture failed.";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", blob, "capture.jpg");
+
+        try {
+
+            const response = await fetch(
+                "http://localhost:8000/analyze-image",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "AI analysis failed");
+            }
+
+            document.getElementById("output").textContent =
+                result.description;
+
+            speak(result.description);
+
+            status.textContent = "AI analysis completed.";
+
+        } catch (error) {
+
+            status.textContent =
+                "Unable to connect to AI backend: " + error.message;
+
+        }
+
+    }, "image/jpeg", 0.85);
 }
-
 function stopCamera() {
 
     if (cameraStream) {
