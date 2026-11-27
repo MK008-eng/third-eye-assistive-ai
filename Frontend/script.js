@@ -53,4 +53,4 @@ startBtn.addEventListener("click", async function () {
 
     }
 
-});
+}); 
