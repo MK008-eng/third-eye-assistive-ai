@@ -1,15 +1,14 @@
 const startBtn = document.getElementById("startBtn");
+const voiceBtn = document.getElementById("voiceBtn");
+const statusText = document.getElementById("status");
 
-startBtn.addEventListener("click", async function () {
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
-    const userMessage = prompt("How can I help you?");
+async function sendMessage(message) {
 
-    if (!userMessage || !userMessage.trim()) {
-        return;
-    }
-
-    startBtn.textContent = "Processing...";
-    startBtn.disabled = true;
+    statusText.textContent = "Processing your request...";
 
     try {
 
@@ -19,7 +18,7 @@ startBtn.addEventListener("click", async function () {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                message: userMessage,
+                message: message,
                 language: "English"
             })
         });
@@ -30,7 +29,7 @@ startBtn.addEventListener("click", async function () {
             throw new Error(data.detail || "Request failed");
         }
 
-        alert(data.response);
+        statusText.textContent = data.response;
 
         const speech = new SpeechSynthesisUtterance(
             data.response
@@ -42,15 +41,74 @@ startBtn.addEventListener("click", async function () {
 
     } catch (error) {
 
-        alert("Unable to connect to the assistant. Please try again.");
+        statusText.textContent =
+            "Unable to connect to the assistant.";
 
         console.error(error);
 
-    } finally {
+    }
+}
 
-        startBtn.textContent = "Start Assistant";
-        startBtn.disabled = false;
 
+// Text input
+startBtn.addEventListener("click", function () {
+
+    const message = prompt("How can I help you?");
+
+    if (message && message.trim()) {
+        sendMessage(message.trim());
     }
 
-}); 
+});
+
+
+// Voice input
+if (SpeechRecognition) {
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    voiceBtn.addEventListener("click", function () {
+
+        statusText.textContent = "Listening...";
+
+        recognition.start();
+
+    });
+
+    recognition.onresult = function (event) {
+
+        const spokenMessage =
+            event.results[0][0].transcript;
+
+        statusText.textContent =
+            "You said: " + spokenMessage;
+
+        sendMessage(spokenMessage);
+
+    };
+
+    recognition.onerror = function (event) {
+
+        statusText.textContent =
+            "Voice recognition error: " + event.error;
+
+    };
+
+    recognition.onend = function () {
+
+        console.log("Voice recognition ended.");
+
+    };
+
+} else {
+
+    voiceBtn.disabled = true;
+
+    statusText.textContent =
+        "Voice recognition is not supported in this browser.";
+
+}
