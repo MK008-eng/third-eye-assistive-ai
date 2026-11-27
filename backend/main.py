@@ -1,68 +1,115 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
-from io import BytesIO
+from google import genai
+from google.genai import types
 import os
 
 app = FastAPI(
-title="Third Eye Assistive AI",
-description="AI-powered assistive vision and communication system",
-version="1.0.0"
+    title="Third Eye Assistive AI",
+    description="AI-powered visual assistance system",
+    version="1.0.0"
 )
 
 app.add_middleware(
-CORSMiddleware,
-allow_origins=[""],
-allow_credentials=True,
-allow_methods=[""],
-allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
+
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 @app.get("/")
 def home():
-return {
-"message": "Third Eye Assistive AI Backend",
-"status": "running"
-}
+    return {
+        "message": "Third Eye Assistive AI",
+        "status": "running"
+    }
 
 @app.get("/health")
 def health():
-return {"status": "healthy"}
+    return {"status": "healthy"}
 
 @app.post("/analyze-image")
 async def analyze_image(file: UploadFile = File(...)):
 
-if file.content_type not in ["image/jpeg", "image/png", "image/webp"]:
-    return {"error": "Unsupported image format"}
+    allowed_types = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ]
 
-image_data = await file.read()
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image format"
+        )
 
-if len(image_data) > 5 * 1024 * 1024:
-    return {"error": "Image size exceeds 5 MB"}
+    image_data = await file.read(MAX_IMAGE_SIZE + 1)
 
-try:
-    image = Image.open(BytesIO(image_data))
-    image.verify()
+    if len(image_data) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Image exceeds 5 MB limit"
+        )
 
-    return {
-        "status": "success",
-        "message": "Image received successfully",
-        "filename": file.filename,
-        "image_size": len(image_data),
-        "ai_analysis": "AI image analysis integration is pending."
-    }
+    api_key = os.getenv("GEMINI_API_KEY")
 
-except Exception:
-    return {"error": "Invalid image file"}
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is not configured"
+        )
+
+    try:
+        client = genai.Client(api_key=api_key)
+
+        response = await client.aio.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=[
+                "Describe this image clearly for a visually impaired "
+                "person. Identify visible objects, surroundings, "
+                "and relevant safety observations. "
+                "Do not guess details that are unclear. "
+                "Keep the description concise.",
+                types.Part.from_bytes(
+                    data=image_data,
+                    mime_type=file.content_type
+                )
+            ]
+        )
+
+        description = response.text
+
+        if not description:
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned an empty response"
+            )
+
+        return {
+            "status": "success",
+            "description": description
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        raise HTTPException(
+            status_code=502,
+            detail="Image analysis failed. Please try again."
+        )
 
 @app.get("/features")
 def features():
-return {
-"features": [
-"Image Upload",
-"AI Scene Understanding - Pending",
-"Object Recognition - Pending",
-"Voice Assistance",
-"Navigation Assistance"
-]
-}
+    return {
+        "features": [
+            "AI Image Understanding",
+            "Scene Description",
+            "Object Identification",
+            "Voice Assistance",
+            "Navigation Assistance"
+        ]
+    }
