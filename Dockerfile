@@ -1,19 +1,13 @@
-services:
+FROM python:3.11-slim
 
-  backend:
-    build: .
-    container_name: third-eye-backend
-    ports:
-      - "8000:8000"
-    environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-    restart: unless-stopped
+WORKDIR /app
 
-  frontend:
-    image: nginx:alpine
-    container_name: third-eye-frontend
-    ports:
-      - "8080:80"
-    volumes:
-      - ./frontline:/usr/share/nginx/html:ro
-    restart: unless-stopped
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ ./backend/
+
+EXPOSE 8000
+
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
